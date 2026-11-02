@@ -158,7 +158,7 @@ main.wide{max-width:1120px}
 .dchip.wkend{grid-column:span 1}
 
 /* today layout */
-.today-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px 22px;align-items:start;margin-top:6px}
+.today-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:36px 22px;align-items:start;margin-top:6px}
 .t-head{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .dtitle .paren{display:block}
 .dtitle h1{font-family:var(--en);font-weight:500;font-size:clamp(34px,5vw,46px);line-height:1.05;letter-spacing:-.02em;text-transform:lowercase;margin-top:4px}
@@ -258,6 +258,8 @@ main.wide{max-width:1120px}
 /* ---------- WEEK ---------- */
 .week-head{display:flex;align-items:center;gap:14px;margin-top:10px}
 .week-head .mid{flex:1;min-width:0}
+.wk-meta{font-family:var(--en);font-size:14px;font-weight:500;color:var(--sub);letter-spacing:.01em}
+.wk-meta span{margin:0 8px;color:var(--faint)}
 .week-head .mid h1{margin-top:8px;font-family:var(--en);font-size:clamp(28px,4.5vw,40px);font-weight:500;line-height:1.05;letter-spacing:-.015em}
 .week-head .mid p{font-size:13.5px;color:var(--sub);margin-top:6px}
 .week-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px}
@@ -399,7 +401,8 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 }
 
 /* ---------- JAR ---------- */
-.jar-wrap{display:grid;grid-template-columns:220px 1fr;gap:28px;align-items:center;margin-top:12px}
+.jar-wrap{display:grid;grid-template-columns:220px 1fr;gap:28px;align-items:start;margin-top:12px}
+.jar-col{display:flex;flex-direction:column;gap:18px;padding-top:6px}
 .jar{width:220px;height:264px;position:relative}
 .jar svg{width:100%;height:100%;overflow:visible}
 .jar .liquid{transition:transform 1.4s var(--ease)}
@@ -412,7 +415,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .coin-drop{position:absolute;left:50%;top:-20px;width:26px;height:26px;margin-left:-13px;animation:drop .9s cubic-bezier(.5,0,.75,0) forwards;z-index:5}
 @keyframes drop{0%{transform:translateY(-40px) rotate(0);opacity:0}15%{opacity:1}100%{transform:translateY(170px) rotate(240deg);opacity:0}}
 .jar-info .paren{display:block}
-.jar-info .amt{font-family:var(--en);font-size:clamp(48px,9vw,72px);font-weight:500;line-height:1;letter-spacing:-.02em;margin-top:8px}
+.jar-info .amt{font-family:var(--en);font-size:clamp(48px,9vw,72px);font-weight:500;line-height:1;letter-spacing:-.02em;margin-top:0}
 .jar-info .amt small{font-size:.38em;margin-left:4px;font-family:var(--ko);font-weight:600}
 .jar-info .sub{font-size:14px;color:var(--sub);margin-top:10px;line-height:1.6}
 .jar-info .sub b{color:var(--ink)}
@@ -421,7 +424,8 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .each .k{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px}
 .each .v{font-family:var(--en);font-size:22px;font-weight:600;margin-top:2px}
 .each .v small{font-family:var(--ko);font-size:13px;font-weight:600;margin-left:2px}
-@media (max-width:640px){.jar-info .chips-row{justify-content:center}.jar-wrap{grid-template-columns:1fr;justify-items:center;text-align:center;gap:10px}.jar{width:180px;height:216px}.each{text-align:left}.jar-info{width:100%}}
+.jar-col .chips-row{justify-content:center}
+@media (max-width:640px){.jar-col{align-items:center}.jar-wrap{grid-template-columns:1fr;justify-items:center;text-align:center;gap:10px}.jar{width:180px;height:216px}.each{text-align:left}.jar-info{width:100%}}
 .sheet{--t:var(--paper);margin-top:18px;padding:22px;--notch-y:42px}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:2px dotted var(--line)}
 .sheet-head h2{display:flex;align-items:baseline;gap:8px}
@@ -784,8 +788,8 @@ function afterRender(){
   if(tab==='jar'){
     const liq=document.querySelector('.jar .liquid'), amt=document.querySelector('[data-amt]');
     if(liq){ const to=+liq.dataset.to, from=anim.jar?anim.jar.fromLevel:(anim.jarEnter?0:to);
-      liq.style.transition='none'; liq.style.transform=`translateY(${(1-from)*176}px)`; liq.getBoundingClientRect();
-      liq.style.transition=''; requestAnimationFrame(()=>{ liq.style.transform=`translateY(${(1-to)*176}px)`; }); }
+      liq.style.transition='none'; liq.style.transform=`translateY(${lvlY(from)}px)`; liq.getBoundingClientRect();
+      liq.style.transition=''; requestAnimationFrame(()=>{ liq.style.transform=`translateY(${lvlY(to)}px)`; }); }
     if(amt){ const to=+amt.dataset.amt; countUp(amt, anim.jar?anim.jar.from:(anim.jarEnter?0:to), to); }
     if(anim.jar){ const j=document.querySelector('.jar'); j?.classList.add('wobble');
       const c=document.createElement('div'); c.className='coin-drop'; c.innerHTML=flower(PCOLOR[anim.jar.person]); j?.appendChild(c); setTimeout(()=>c.remove(),950); }
@@ -966,7 +970,7 @@ function viewWeekBoard(){
   const head = E ? `<div class="week-head"><div class="mid"><div class="chips-row"><span class="chip">edit routine</span></div><h1>weekly routine</h1><p>할 일을 눌러 고르고, 옮길 요일 칸을 누르거나 끌어다 놓으세요.</p></div></div>`
     : `<div class="week-head">
       <button class="icon-btn" data-act="wk" data-d="-1" ${w<=0?'disabled':''} aria-label="이전 주">${I.l}</button>
-      <div class="mid"><div class="chips-row"><span class="chip">week ${w+1}</span><span class="chip">chapter ${ch.n}</span>${w===weekOf(t)?'<span class="chip">this week</span>':''}</div><h1>${esc(ch.en)}</h1><p>${ch.ko}, ${md(ws)} ~ ${md(addDays(ws,4))}${ch.gr?`. 문법: ${esc(ch.gr)}`:''}</p></div>
+      <div class="mid"><p class="wk-meta">week ${w+1}<span>/</span>chapter ${ch.n}${w===weekOf(t)?'<span>/</span>this week':''}</p><h1>${esc(ch.en)}</h1><p>${ch.ko}, ${md(ws)} ~ ${md(addDays(ws,4))}${ch.gr?`. 문법: ${esc(ch.gr)}`:''}</p></div>
       <button class="icon-btn" data-act="wk" data-d="1" ${w>=WEEKS-1?'disabled':''} aria-label="다음 주">${I.r}</button>
     </div>
     <div class="week-tools">
@@ -1035,6 +1039,7 @@ function viewJourney(){
 }
 
 /* ---------- JAR ---------- */
+const lvlY = l => l<=0 ? 215 : (1-l)*176;
 function jarSVG(level){
   const body='M44 66Q44 56 54 56H146Q156 56 156 66V206Q156 230 132 230H68Q44 230 44 206Z';
   return `<svg viewBox="0 0 200 240" aria-hidden="true">
@@ -1042,7 +1047,7 @@ function jarSVG(level){
     <rect x="64" y="30" width="72" height="20" rx="8" fill="#EFE3D6"/>
     <path d="${body}" fill="#F3E8DC"/>
     <g clip-path="url(#jarclip)">
-      <g class="liquid" data-to="${level}" style="transform:translateY(${(1-level)*176}px)">
+      <g class="liquid" data-to="${level}" style="transform:translateY(${lvlY(level)}px)">
         <g filter="url(#soft)">
           <g class="wave back"><path d="M-40 54 Q-20 46 0 54 T40 54 T80 54 T120 54 T160 54 T200 54 T240 54 T280 54 V300 H-40Z" fill="#F6CADD"/></g>
           <g class="wave"><path d="M0 60 Q20 52 40 60 T80 60 T120 60 T160 60 T200 60 T240 60 T280 60 V300 H0Z" fill="#EFA9C9"/></g>
@@ -1061,8 +1066,8 @@ function viewJar(){
   const hist=[...state.fines].sort((a,b)=>(b.paidOn||'').localeCompare(a.paidOn||'')||(b.createdAt||0)-(a.createdAt||0));
   return `<div class="stagger">
     <div class="jar-wrap">
-      <div class="jar">${jarSVG(level)}</div>
-      <div class="jar-info"><div class="chips-row"><span class="chip">the OPIc jar</span><span class="ko" style="font-size:13px;color:var(--sub)">오픽 저금통</span></div>
+      <div class="jar-col"><div class="chips-row"><span class="chip">the OPIc jar</span><span class="ko" style="font-size:13px;color:var(--sub)">오픽 저금통</span></div><div class="jar">${jarSVG(level)}</div></div>
+      <div class="jar-info">
         <div class="amt num"><span data-amt="${total}">${won(total)}</span><small>원</small></div>
         <p class="sub">모인 벌금은 반씩 나눠서 각자 오픽 응시료에 보태요.<br>응시료 84,000원 중 <b>${Math.round(each/OPIC_FEE*100)}%</b>를 채웠어요.</p>
         <div class="each"><div><div class="k">1인당 지원금</div><div class="v num">${won(each)}<small>원</small></div></div><div><div class="k">미납</div><div class="v num" style="color:${debts.length?'var(--rasp)':'inherit'}">${won(debts.length*FINE)}<small>원</small></div></div>
