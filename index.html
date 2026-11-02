@@ -48,6 +48,10 @@ a{color:inherit;text-decoration:none}
 .ticket .hole{display:none}
 .lift{filter:drop-shadow(0 12px 22px rgba(74,51,46,.22))}
 .paren{font-family:var(--en);font-size:13px;font-weight:500;letter-spacing:.01em;color:var(--sub)}
+.chips-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.chip{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;background:rgba(74,51,46,.07);font-family:var(--en);font-size:12px;font-weight:500;letter-spacing:.01em;color:var(--sub);white-space:nowrap}
+.chip.on-pink{background:rgba(255,252,247,.5);color:var(--cocoa-deep)}
+.chip.on-dark{background:rgba(255,255,255,.16);color:var(--pink)}
 
 /* ---------- header / nav ---------- */
 .top{position:sticky;top:0;z-index:30;background:rgba(251,244,234,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -154,22 +158,22 @@ main.wide{max-width:1120px}
 .dchip.wkend{grid-column:span 1}
 
 /* today layout */
-.today-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:36px 22px;align-items:start;margin-top:6px}
+.today-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px 22px;align-items:start;margin-top:6px}
 .t-head{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .dtitle .paren{display:block}
 .dtitle h1{font-family:var(--en);font-weight:500;font-size:clamp(34px,5vw,46px);line-height:1.05;letter-spacing:-.02em;text-transform:lowercase;margin-top:4px}
 .dtitle p{font-size:13.5px;color:var(--sub);margin-top:6px}
-.dtitle .back{margin-left:10px;height:24px;padding:0 10px;font-size:12px;vertical-align:1px}
-.dtitle .paren{display:flex;align-items:center;height:24px}
+.dtitle .back{margin-left:4px;height:24px;padding:0 10px;font-size:12px;vertical-align:1px}
+.dtitle{padding-bottom:22px}
+.dtitle .chips-row{height:24px}
 .t-head .strip{width:min(470px,100%);margin:0}
 .side-col{position:sticky;top:96px}
 .chapter{--t:var(--pink);padding:26px 24px 22px;overflow:hidden;--notch-y:118px}
 .chapter .petals{position:absolute;inset:0;pointer-events:none;z-index:0}
 .chapter .petals svg{position:absolute;fill:#E89DC0}
 .chapter>*:not(.petals){position:relative;z-index:1}
-.chapter .labels{display:flex;gap:6px;flex-wrap:wrap}
-.chapter .labels span{font-family:var(--en);font-size:12.5px;font-weight:500;color:var(--cocoa-deep)}
-.chapter h2{font-family:var(--en);font-size:26px;font-weight:600;line-height:1.1;margin-top:10px;letter-spacing:-.01em}
+
+.chapter h2{font-family:var(--en);font-size:26px;font-weight:600;line-height:1.1;margin-top:12px;letter-spacing:-.01em}
 .chapter .ko{font-size:13px;color:var(--cocoa-deep);margin-top:4px}
 .chapter .facts{list-style:none;margin-top:18px;padding-top:14px;border-top:2px dotted rgba(110,79,67,.25);display:grid;gap:8px}
 .chapter .facts li{display:flex;justify-content:space-between;gap:10px;font-size:13px}
@@ -180,7 +184,7 @@ main.wide{max-width:1120px}
 .chapter .acts .btn{background:rgba(255,252,247,.7)}
 .chapter .acts .btn:hover{background:var(--paper)}
 @media (max-width:980px){
-  .today-grid{grid-template-columns:minmax(0,1fr);gap:24px}
+  .today-grid{grid-template-columns:minmax(0,1fr);gap:18px}
   .side-col{position:relative;top:0}
   .t-head{flex-direction:column-reverse;align-items:stretch;gap:14px}
   .t-head .strip{width:100%}
@@ -254,7 +258,7 @@ main.wide{max-width:1120px}
 /* ---------- WEEK ---------- */
 .week-head{display:flex;align-items:center;gap:14px;margin-top:10px}
 .week-head .mid{flex:1;min-width:0}
-.week-head .mid h1{font-family:var(--en);font-size:clamp(28px,4.5vw,40px);font-weight:500;line-height:1.05;letter-spacing:-.015em}
+.week-head .mid h1{margin-top:8px;font-family:var(--en);font-size:clamp(28px,4.5vw,40px);font-weight:500;line-height:1.05;letter-spacing:-.015em}
 .week-head .mid p{font-size:13.5px;color:var(--sub);margin-top:6px}
 .week-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px}
 .edit-btn{margin-left:auto;color:var(--sub);background:transparent;font-weight:500}
@@ -345,7 +349,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 /* ---------- JOURNEY ---------- */
 .j-hero{margin-top:14px}
-.j-hero h1{font-family:var(--en);font-size:clamp(36px,6vw,54px);font-weight:500;line-height:1;letter-spacing:-.02em}
+.j-hero h1{margin-top:10px;font-family:var(--en);font-size:clamp(36px,6vw,54px);font-weight:500;line-height:1;letter-spacing:-.02em}
 .j-hero p{margin-top:8px;color:var(--sub);font-size:14px}
 .duel{display:grid;grid-template-columns:1fr auto 1fr;gap:0;margin-top:22px;--t:var(--paper);padding:22px 8px;--notch-y:50%}
 .duel .side{padding:0 18px;text-align:center}
@@ -417,7 +421,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .each .k{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px}
 .each .v{font-family:var(--en);font-size:22px;font-weight:600;margin-top:2px}
 .each .v small{font-family:var(--ko);font-size:13px;font-weight:600;margin-left:2px}
-@media (max-width:640px){.jar-wrap{grid-template-columns:1fr;justify-items:center;text-align:center;gap:10px}.jar{width:180px;height:216px}.each{text-align:left}.jar-info{width:100%}}
+@media (max-width:640px){.jar-info .chips-row{justify-content:center}.jar-wrap{grid-template-columns:1fr;justify-items:center;text-align:center;gap:10px}.jar{width:180px;height:216px}.each{text-align:left}.jar-info{width:100%}}
 .sheet{--t:var(--paper);margin-top:18px;padding:22px;--notch-y:42px}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:2px dotted var(--line)}
 .sheet-head h2{display:flex;align-items:baseline;gap:8px}
@@ -814,7 +818,7 @@ function viewPick(){
     <h1>jaksim<br><i>samdal</i> english</h1>
     <p class="ko">작심 삼달 영어. 12주 동안 둘이 함께 끝까지 가봐요.</p>
     <div class="tags">${Object.entries(PEOPLE).map(([k,p])=>`<button class="ticket tagcard p-${k}" data-act="me" data-p="${k}"><span class="hole"></span>
-      <span class="paren">(this is me)</span>${flower(k==='juhyun'?'#FFFCF7':'#EFA9C9', k==='juhyun'?'#DE6FA1':'#8A6656')}<span><span class="big">${p.en}</span><br><small>${p.name}</small></span></button>`).join('')}</div>
+      <span class="chip on-pink">this is me</span>${flower(k==='juhyun'?'#FFFCF7':'#EFA9C9', k==='juhyun'?'#DE6FA1':'#8A6656')}<span><span class="big">${p.en}</span><br><small>${p.name}</small></span></button>`).join('')}</div>
     <p class="note" style="margin-top:22px">이 기기에 기억해 둘게요. 오른쪽 위에서 언제든 바꿀 수 있어요.</p>
   </div></div></main>`;
 }
@@ -873,7 +877,7 @@ function weekStrip(d){
 function chapterTicket(d){
   const ch=chapterOf(d)||CHAPTERS[0], w=Math.max(0,Math.min(WEEKS-1,weekOf(d)));
   return `<aside class="ticket chapter" aria-label="이번 주 챕터">${petals(ch.n*31,5)}
-    <div class="labels"><span>(week ${w+1})</span><span>(chapter ${ch.n})</span></div>
+    <div class="chips-row"><span class="chip on-pink">week ${w+1}</span><span class="chip on-pink">chapter ${ch.n}</span></div>
     <h2>${esc(ch.en)}</h2><p class="ko">${ch.ko}</p>
     <ul class="facts">
       <li><span>my story</span><b>${ch.n}-1, ${ch.ms}쪽</b></li>
@@ -896,23 +900,23 @@ function viewToday(){
   const wd=dow(d), weekend=wd===0||wd===6, w=weekOf(d);
   if(weekOf(t)>=WEEKS && !viewDate){
     const a=personStats('juhyun'), b=personStats('yena');
-    return `<div class="today-grid"><div class="t-head"><div class="dtitle"><span class="paren">(12 weeks done)</span><h1>we made it</h1><p>12주 완주! 주현 ${a.pct}%, 예나 ${b.pct}%. 이제 오픽 볼 차례예요.</p></div></div></div>`;
+    return `<div class="today-grid"><div class="t-head"><div class="dtitle"><div class="chips-row"><span class="chip">12 weeks done</span></div><h1>we made it</h1><p>12주 완주! 주현 ${a.pct}%, 예나 ${b.pct}%. 이제 오픽 볼 차례예요.</p></div></div></div>`;
   }
   const isToday=d===t;
-  const tag = isToday?'(today)':t<start()&&d===start()?`(d-${diffDays(start(),t)})`:d<t?'(past)':'(upcoming)';
+  const tag = isToday?'today':t<start()&&d===start()?`d-${diffDays(start(),t)}`:d<t?'past':'upcoming';
   const back = !isToday ? `<button class="btn btn-sm btn-ink back" data-act="day" data-to="${t<start()?start():t}">today</button>`:'';
   const title = weekend?`weekend, ${enDate(d)}`:`${DAYS_EN_FULL[wd]}, ${enDate(d)}`;
   const sub = `${krDateDow(d)}, ${w+1}주차${weekend?'. 금요일 녹음만 일요일 자정까지 내면 돼요':''}`;
   let list;
   if(weekend){
     const fri=addDays(d, wd===6?-1:-2), pend=itemsFor(fri).filter(i=>i.dueSunday);
-    list = pend.length?boardCard(fri,pend,'(weekend)','주말 과제'):`<section class="ticket board"><div class="blank">${flower('#EFA9C9','#DE6FA1')}주말이에요. 푹 쉬어요.</div></section>`;
+    list = pend.length?boardCard(fri,pend,'weekend','주말 과제'):`<section class="ticket board"><div class="blank">${flower('#EFA9C9','#DE6FA1')}주말이에요. 푹 쉬어요.</div></section>`;
   } else {
     const items=itemsFor(d);
-    list = items.length?boardCard(d,items,'(to-do)', isToday?'오늘 할 일':'이날 할 일'):`<section class="ticket board"><div class="blank">이날은 배정된 할 일이 없어요. week 탭에서 루틴을 바꿀 수 있어요.</div></section>`;
+    list = items.length?boardCard(d,items,'to-do', isToday?'오늘 할 일':'이날 할 일'):`<section class="ticket board"><div class="blank">이날은 배정된 할 일이 없어요. week 탭에서 루틴을 바꿀 수 있어요.</div></section>`;
   }
   return `<div class="today-grid stagger">
-    <div class="t-head"><div class="dtitle ${daySlide?'xfade':''}"><span class="paren">${tag}${back}</span><h1>${title}</h1><p>${sub}</p></div>${weekStrip(d)}</div>
+    <div class="t-head"><div class="dtitle ${daySlide?'xfade':''}"><div class="chips-row"><span class="chip">${tag}</span>${back}</div><h1>${title}</h1><p>${sub}</p></div>${weekStrip(d)}</div>
     <div class="main-col ${daySlide?'slide-'+daySlide:''}">${list}</div>
     <div class="side-col ${daySlide?'slide-'+daySlide:''}">${chapterTicket(weekend?addDays(d,wd===6?-1:-2):d)}</div>
   </div>`;
@@ -959,10 +963,10 @@ function viewWeekBoard(){
       ${E?`<button class="add-chip" data-act="ed-add" data-k="${k}">+ add</button>`:''}
     </section>`;
   }).join('');
-  const head = E ? `<div class="week-head"><div class="mid"><span class="paren">(edit routine)</span><h1>weekly routine</h1><p>할 일을 눌러 고르고, 옮길 요일 칸을 누르거나 끌어다 놓으세요.</p></div></div>`
+  const head = E ? `<div class="week-head"><div class="mid"><div class="chips-row"><span class="chip">edit routine</span></div><h1>weekly routine</h1><p>할 일을 눌러 고르고, 옮길 요일 칸을 누르거나 끌어다 놓으세요.</p></div></div>`
     : `<div class="week-head">
       <button class="icon-btn" data-act="wk" data-d="-1" ${w<=0?'disabled':''} aria-label="이전 주">${I.l}</button>
-      <div class="mid"><span class="paren">(week ${w+1}) (chapter ${ch.n})${w===weekOf(t)?' (this week)':''}</span><h1>${esc(ch.en)}</h1><p>${ch.ko}, ${md(ws)} ~ ${md(addDays(ws,4))}${ch.gr?`. 문법: ${esc(ch.gr)}`:''}</p></div>
+      <div class="mid"><div class="chips-row"><span class="chip">week ${w+1}</span><span class="chip">chapter ${ch.n}</span>${w===weekOf(t)?'<span class="chip">this week</span>':''}</div><h1>${esc(ch.en)}</h1><p>${ch.ko}, ${md(ws)} ~ ${md(addDays(ws,4))}${ch.gr?`. 문법: ${esc(ch.gr)}`:''}</p></div>
       <button class="icon-btn" data-act="wk" data-d="1" ${w>=WEEKS-1?'disabled':''} aria-label="다음 주">${I.r}</button>
     </div>
     <div class="week-tools">
@@ -1020,7 +1024,7 @@ function viewJourney(){
     </button>`;}).join('');
   const lead = S.juhyun.pct===S.yena.pct ? '둘이 나란히 가고 있어요' : `${iga(PEOPLE[S.juhyun.pct>S.yena.pct?'juhyun':'yena'].name)} ${Math.abs(S.juhyun.pct-S.yena.pct)}%p 앞서 있어요`;
   return `<div class="stagger">
-    <div class="j-hero"><span class="paren">(12 weeks to OPIc)</span><h1>our journey</h1><p>오픽까지 12주. ${S.juhyun.total?lead:'첫 체크를 기다리고 있어요'}</p></div>
+    <div class="j-hero"><div class="chips-row"><span class="chip">12 weeks to OPIc</span></div><h1>our journey</h1><p>오픽까지 12주. ${S.juhyun.total?lead:'첫 체크를 기다리고 있어요'}</p></div>
     <section class="ticket duel"><span class="hole"></span>${side('juhyun')}<span class="vs">vs</span>${side('yena')}</section>
     <section class="ticket garden"><span class="hole"></span>
       <div class="garden-head"><span class="en">the garden</span><small>한 칸에 두 송이, 왼쪽 주현 오른쪽 예나</small></div>
@@ -1058,7 +1062,7 @@ function viewJar(){
   return `<div class="stagger">
     <div class="jar-wrap">
       <div class="jar">${jarSVG(level)}</div>
-      <div class="jar-info"><span class="paren">(the OPIc jar)</span><span class="ko" style="font-size:13px;color:var(--sub)">오픽 저금통</span>
+      <div class="jar-info"><div class="chips-row"><span class="chip">the OPIc jar</span><span class="ko" style="font-size:13px;color:var(--sub)">오픽 저금통</span></div>
         <div class="amt num"><span data-amt="${total}">${won(total)}</span><small>원</small></div>
         <p class="sub">모인 벌금은 반씩 나눠서 각자 오픽 응시료에 보태요.<br>응시료 84,000원 중 <b>${Math.round(each/OPIC_FEE*100)}%</b>를 채웠어요.</p>
         <div class="each"><div><div class="k">1인당 지원금</div><div class="v num">${won(each)}<small>원</small></div></div><div><div class="k">미납</div><div class="v num" style="color:${debts.length?'var(--rasp)':'inherit'}">${won(debts.length*FINE)}<small>원</small></div></div>
@@ -1098,7 +1102,7 @@ function noticeBar(){
   if(editing||modal||tab==='jar') return '';
   const debts=debtsFor(me); if(!debts.length) return '';
   return `<div class="notice" role="status"><div class="notice-wrap"><div class="ticket notice-in"><span class="ico">${flower('#C9466B','#FFFCF7')}</span>
-    <p><b>(unpaid)</b> 벌금 ${won(debts.length*FINE)}원이 쌓였어요. ${debts.length>1?`놓친 날이 ${debts.length}번 있어요.`:`${shortDate(debts[0].origin||debts[0].date)} 할 일을 놓쳤어요.`}</p>
+    <p><span class="chip on-dark">unpaid</span> 벌금 ${won(debts.length*FINE)}원이 쌓였어요. ${debts.length>1?`놓친 날이 ${debts.length}번 있어요.`:`${shortDate(debts[0].origin||debts[0].date)} 할 일을 놓쳤어요.`}</p>
     <button class="btn btn-sm" data-act="tab" data-tab="jar">jar 보기</button></div></div></div>`;
 }
 
