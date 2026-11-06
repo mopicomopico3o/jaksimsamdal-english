@@ -227,6 +227,8 @@ main.wide{max-width:1120px}
 .t-sub svg{width:13px;height:13px;vertical-align:-2px;margin-right:5px}
 .t-sub .due{color:var(--rasp);font-weight:600}
 .t-sub .missed{color:var(--rasp);font-weight:600}
+.t-sub .late{color:var(--cocoa-deep);font-weight:600}
+.dchip-s{display:inline-flex;align-items:center;height:22px;padding:0 8px;margin-right:8px;border-radius:99px;background:var(--linen);font-family:var(--en);font-size:12px;font-weight:500;color:var(--sub);vertical-align:2px}
 .t-hint{margin-top:10px;font-size:12.5px;line-height:1.55;color:var(--cocoa-deep);background:var(--blush-2);border-radius:12px;padding:9px 12px}
 .body-yena .t-hint{background:#F6EEE9}
 .t-side{flex:none;display:flex;align-items:center;gap:8px;padding-top:4px}
@@ -465,6 +467,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .notice{position:fixed;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom));z-index:35;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
 @media (min-width:821px){.notice{bottom:22px}}
 .notice-wrap{pointer-events:auto;width:min(560px,100%);filter:drop-shadow(0 10px 22px rgba(74,51,46,.25));animation:noticeIn .6s var(--spring) both .3s}
+.ticket.notice-in{--ticket-mask:radial-gradient(circle 9px at 0 50%,#0000 96%,#000 100%),radial-gradient(circle 9px at 100% 50%,#0000 96%,#000 100%),radial-gradient(circle 7px at 50% 0,#0000 96%,#000 100%),radial-gradient(circle 7px at 50% 100%,#0000 96%,#000 100%)}
 .notice-in{--t:var(--cocoa-deep);color:var(--cream);padding:12px 14px 12px 18px;display:flex;align-items:center;gap:12px;border-radius:18px}
 .notice-in .ico{width:30px;height:30px;flex:none}
 .notice-in p{flex:1;font-size:13px;line-height:1.45}
@@ -676,15 +679,15 @@ function itemsFor(date){
   return routineFor(date)[w]||[];
 }
 const isChecked = (d,p,id) => !!state.days[d]?.[p]?.[id];
-const deadlineOf = (d,i) => i.dueSunday ? addDays(d,7-dow(d)) : d;
-function canEdit(d,i,p){ if(p!==me) return false; const t=today(); if(d>t||t>deadlineOf(d,i)) return false; return d===t||!!i.dueSunday; }
+const deadlineOf = (d,i) => addDays(d,(7-dow(d))%7);
+function canEdit(d,i,p){ if(p!==me) return false; const t=today(); return !(d>t||t>deadlineOf(d,i)); }
 function debtsFor(p){
   const out=[], t=today(); if(t<=start()) return out;
   const last = addDays(t,-1)<endDate()?addDays(t,-1):endDate();
   for(let d=start(); d<=last; d=addDays(d,1)){
     const items=itemsFor(d); if(!items.length) continue;
     const same=items.filter(i=>!i.dueSunday), miss=same.filter(i=>!isChecked(d,p,i.id));
-    if(same.length&&miss.length) out.push({key:`${d}_${p}`, person:p, date:d, items:miss.map(i=>i.title)});
+    if(same.length&&miss.length&&deadlineOf(d,same[0])<t) out.push({key:`${d}_${p}`, person:p, date:d, items:miss.map(i=>i.title)});
     for(const i of items.filter(i=>i.dueSunday)){ const dl=deadlineOf(d,i); if(dl<t&&!isChecked(d,p,i.id)) out.push({key:`${d}_${p}_${i.id}`, person:p, date:dl, origin:d, items:[i.title], late:true}); }
   }
   const settled=new Set(state.fines.map(f=>f.forKey).filter(Boolean));
@@ -725,6 +728,7 @@ let confirmDel = null;
 let anim = { view:'fade', pop:null, jar:null, flash:[] };
 let prevPartner = null;
 let lastPill = null;
+const sessionDone = new Set();
 let daySlide = null;
 let holdUntil = 0, holdTimer = null;
 const app = document.getElementById('app');
@@ -845,22 +849,23 @@ function actionBtn(i){
   if(i.kind==='watch') return `<a class="btn btn-sm btn-soft" href="${esc(state.settings.lectureUrl)}" target="_blank" rel="noopener" aria-label="강의 열기">${I.play}<span class="lbl en">lecture</span></a>`;
   return '';
 }
-function taskRow(d,i){
+function taskRow(d,i,showDate){
   const ch=chapterOf(d), on=isChecked(d,me,i.id), o=OTHER[me], oon=isChecked(d,o,i.id);
   const editable=canEdit(d,i,me), t=today(), dl=deadlineOf(d,i);
-  const missed=!on && dl<t, future=d>t;
+  const missed=!on && dl<t, future=d>t, late=!on && !missed && d<t && !i.dueSunday;
   const key=`${d}|${i.id}`;
   const due = i.dueSunday ? `<span class="due">${dl===t?'오늘 자정 마감':`${shortDate(dl)} 자정까지`}</span>` : '';
-  const stateTxt = missed?'<span class="missed">놓쳤어요</span>':(future?'<span>그날 체크할 수 있어요</span>':'');
+  const stateTxt = missed?'<span class="missed">놓쳤어요</span>':late?'<span class="late">밀렸어요, 일요일까지 하면 괜찮아요</span>':(future?'<span>그날 체크할 수 있어요</span>':'');
+  const dateTxt = showDate?`<span class="dchip-s">${shortDate(d)}</span>`:'';
   const label = on?'완료 취소':'완료로 체크';
   return `<li class="task ${on?'done':''} ${anim.pop===key?'pop':''}" data-key="${key}">
     <button class="bloom ${!editable&&!on?(missed?'missed':'locked'):''}" role="checkbox" aria-checked="${on}" aria-label="${esc(i.title)} ${label}" data-act="check" data-date="${d}" data-id="${i.id}" ${editable?'':'disabled'}>
       ${on?`<span class="on">${flower(PCOLOR[me])}</span>`:'<span class="off"></span>'}
     </button>
     <div class="t-body">
-      <div class="t-title">${esc(i.title)}</div>
+      <div class="t-title">${dateTxt}${esc(i.title)}</div>
       <div class="t-sub">${kindIcon(i.kind)}${[itemSub(i,ch),due,stateTxt].filter(Boolean).join('<span class="sep" aria-hidden="true">/</span>')}</div>
-      ${i.kind==='record'&&!on&&!missed&&!future?`<div class="t-hint">${RECORD_HINT}</div>`:''}
+      ${i.kind==='record'&&!on&&!missed&&!future&&!showDate?`<div class="t-hint">${RECORD_HINT}</div>`:''}
     </div>
     <div class="t-side">${!future?actionBtn(i):''}
       <span class="mate ${oon?'on':''}" data-key="${o}|${key}" style="--mate-soft:${PSOFT[o]}" title="${PEOPLE[o].name} ${oon?'완료':'아직'}" aria-label="${PEOPLE[o].name} ${oon?'완료':'아직'}">
@@ -914,11 +919,11 @@ function viewToday(){
   const tag = isToday?'today':t<start()&&d===start()?`d-${diffDays(start(),t)}`:d<t?'past':'upcoming';
   const back = !isToday ? `<button class="btn btn-sm btn-ink back" data-act="day" data-to="${t<start()?start():t}">today</button>`:'';
   const title = weekend?`weekend, ${enDate(d)}`:`${DAYS_EN_FULL[wd]}, ${enDate(d)}`;
-  const sub = `${krDateDow(d)}, ${w+1}주차${weekend?'. 금요일 녹음만 일요일 자정까지 내면 돼요':''}`;
+  const sub = `${krDateDow(d)}, ${w+1}주차${weekend?'. 밀린 일은 일요일 자정까지 하면 벌금 없어요':''}`;
   let list;
   if(weekend){
-    const fri=addDays(d, wd===6?-1:-2), pend=itemsFor(fri).filter(i=>i.dueSunday);
-    list = pend.length?boardCard(fri,pend,'weekend','주말 과제'):`<section class="ticket board"><div class="blank">${flower('#EFA9C9','#DE6FA1')}주말이에요. 푹 쉬어요.</div></section>`;
+    const mon=addDays(d, wd===6?-5:-6);
+    list = weekendCard(mon);
   } else {
     const items=itemsFor(d);
     list = items.length?boardCard(d,items,'to-do', isToday?'오늘 할 일':'이날 할 일'):`<section class="ticket board"><div class="blank">이날은 배정된 할 일이 없어요. week 탭에서 루틴을 바꿀 수 있어요.</div></section>`;
@@ -928,6 +933,24 @@ function viewToday(){
     <div class="main-col ${daySlide?'slide-'+daySlide:''}">${list}</div>
     <div class="side-col ${daySlide?'slide-'+daySlide:''}">${chapterTicket(weekend?addDays(d,wd===6?-1:-2):d)}</div>
   </div>`;
+}
+function weekendCard(mon){
+  const o=OTHER[me], all=[];
+  for(let k=0;k<5;k++){ const x=addDays(mon,k); for(const i of itemsFor(x)) all.push({d:x,i}); }
+  if(!all.length) return `<section class="ticket board"><div class="blank">${flower('#EFA9C9','#DE6FA1')}주말이에요. 푹 쉬어요.</div></section>`;
+  const cnt=p=>all.filter(r=>isChecked(r.d,p,r.i.id)).length;
+  const mine=all.filter(r=>!isChecked(r.d,me,r.i.id)||sessionDone.has(r.d+'|'+r.i.id));
+  const od=cnt(o), oleft=all.length-od;
+  const body = mine.length
+    ? `<ul class="tasks">${mine.map(r=>taskRow(r.d,r.i,true)).join('')}</ul>`
+    : `<div class="blank">${flower(PCOLOR[me],'#FFFCF7')}이번 주 할 일을 다 끝냈어요. 푹 쉬어요.${oleft?`<br><span class="note">${iga(PEOPLE[o].name)} 아직 ${oleft}개 남았어요.</span>`:''}</div>`;
+  return `<section class="ticket board"><span class="hole"></span>
+    <div class="board-head"><h2><span class="en">this week</span><small>${mine.length?'밀린 할 일':'이번 주 할 일'}</small></h2>
+      <div class="scores">${[me,o].map(p=>{const n=cnt(p);return `<span class="score" title="${PEOPLE[p].name} ${n}/${all.length}"><span class="sf">${flower(PCOLOR[p])}</span><span><span class="nm">${PEOPLE[p].name}</span><span class="n">${n}/${all.length}</span></span></span>`;}).join('')}</div>
+    </div>
+    ${cnt(me)===all.length&&od===all.length?`<div class="stamp">${flower('#EFA9C9','#4A332E')}both bloomed, 이번 주 둘 다 끝냈어요</div>`:''}
+    ${body}
+  </section>`;
 }
 function boardCard(d,items,en,ko){
   const o=OTHER[me];
@@ -1030,10 +1053,10 @@ function viewJourney(){
       <span class="wlabel"><span class="wn">w${w+1}</span><span class="wt">${esc(c.en)}</span><span class="wk">${c.ko}</span></span>
       ${[1,2,3,4,5].map(k=>{const d=addDays(ws,k-1);return `<span class="plot ${d===t?'today':''}">${fl(dayStatus(d,'juhyun'),'juhyun')}${fl(dayStatus(d,'yena'),'yena')}</span>`;}).join('')}
     </button>`;}).join('');
-  const lead = S.juhyun.pct===S.yena.pct ? '둘이 나란히 가고 있어요' : `${iga(PEOPLE[S.juhyun.pct>S.yena.pct?'juhyun':'yena'].name)} ${Math.abs(S.juhyun.pct-S.yena.pct)}%p 앞서 있어요`;
+  const lead = (S.juhyun.done+S.yena.done) ? `둘이 함께 ${S.juhyun.done+S.yena.done}송이를 피웠어요` : "첫 꽃을 기다리고 있어요";
   return `<div class="stagger">
     <div class="j-hero"><div class="chips-row"><span class="chip">12 weeks to OPIc</span></div><h1>our journey</h1><p>오픽까지 12주. ${S.juhyun.total?lead:'첫 체크를 기다리고 있어요'}</p></div>
-    <section class="ticket duel"><span class="hole"></span>${side('juhyun')}<span class="vs">vs</span>${side('yena')}</section>
+    <section class="ticket duel"><span class="hole"></span>${side('juhyun')}<span class="vs">&amp;</span>${side('yena')}</section>
     <section class="ticket garden"><span class="hole"></span>
       <div class="garden-head"><span class="en">the garden</span><small>한 칸에 두 송이, 왼쪽 주현 오른쪽 예나</small></div>
       <div class="grow ghead" aria-hidden="true"><span></span>${[1,2,3,4,5].map(k=>`<span>${DAYS_EN[k]}</span>`).join('')}</div>
@@ -1109,7 +1132,15 @@ function viewModal(){
 }
 function noticeBar(){
   if(editing||modal||tab==='jar') return '';
-  const debts=debtsFor(me); if(!debts.length) return '';
+  const debts=debtsFor(me);
+  if(!debts.length){
+    const t=today(), late=[];
+    if(weekOf(t)>=0&&weekOf(t)<WEEKS){ const mon=addDays(t,-((dow(t)+6)%7)); for(let k=0;k<5;k++){ const x=addDays(mon,k); if(x>=t) break; for(const i of itemsFor(x)) if(!isChecked(x,me,i.id)) late.push({x,i}); } }
+    if(!late.length) return '';
+    return `<div class="notice" role="status"><div class="notice-wrap"><div class="ticket notice-in"><span class="ico">${flower('#EFA9C9','#FFFCF7')}</span>
+    <p><span class="chip on-dark">catch up</span> 밀린 할 일이 ${late.length}개 있어요. 일요일 자정까지 하면 벌금 없어요.</p>
+    <button class="btn btn-sm" data-act="goto-day" data-to="${late[0].x}">하러 가기</button></div></div></div>`;
+  }
   return `<div class="notice" role="status"><div class="notice-wrap"><div class="ticket notice-in"><span class="ico">${flower('#C9466B','#FFFCF7')}</span>
     <p><span class="chip on-dark">unpaid</span> 벌금 ${won(debts.length*FINE)}원이 쌓였어요. ${debts.length>1?`놓친 날이 ${debts.length}번 있어요.`:`${shortDate(debts[0].origin||debts[0].date)} 할 일을 놓쳤어요.`}</p>
     <button class="btn btn-sm" data-act="tab" data-tab="jar">jar 보기</button></div></div></div>`;
@@ -1136,7 +1167,7 @@ document.addEventListener('click', async ev=>{
   if(a==='check'){
     const {date,id}=b.dataset, v=!isChecked(date,me,id);
     state.days[date]??={}; state.days[date][me]??={}; state.days[date][me][id]=v;
-    if(v) anim.pop=`${date}|${id}`;
+    if(v){ anim.pop=`${date}|${id}`; sessionDone.add(`${date}|${id}`); }
     anim.view=null; render(); holdUntil=Date.now()+800;
     try{ await store.setCheck(date,me,id,v); }catch(e){ toast('저장하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
     const items=itemsFor(date).filter(i=>date===today()||i.dueSunday);
