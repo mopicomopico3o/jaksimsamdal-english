@@ -679,16 +679,18 @@ function itemsFor(date){
   return routineFor(date)[w]||[];
 }
 const isChecked = (d,p,id) => !!state.days[d]?.[p]?.[id];
+const checkedOn = (d,p,id) => { const v=state.days[d]?.[p]?.[id]; return v===true ? d : (typeof v==='string' ? v : null); };
 const deadlineOf = (d,i) => addDays(d,(7-dow(d))%7);
-function canEdit(d,i,p){ if(p!==me) return false; const t=today(); return !(d>t||t>deadlineOf(d,i)); }
+const onTime = (d,p,i) => { const c=checkedOn(d,p,i.id); return !!c && c<=deadlineOf(d,i); };
+function canEdit(d,i,p){ if(p!==me) return false; return d<=today(); }
 function debtsFor(p){
   const out=[], t=today(); if(t<=start()) return out;
   const last = addDays(t,-1)<endDate()?addDays(t,-1):endDate();
   for(let d=start(); d<=last; d=addDays(d,1)){
     const items=itemsFor(d); if(!items.length) continue;
-    const same=items.filter(i=>!i.dueSunday), miss=same.filter(i=>!isChecked(d,p,i.id));
+    const same=items.filter(i=>!i.dueSunday), miss=same.filter(i=>!onTime(d,p,i));
     if(same.length&&miss.length&&deadlineOf(d,same[0])<t) out.push({key:`${d}_${p}`, person:p, date:d, items:miss.map(i=>i.title)});
-    for(const i of items.filter(i=>i.dueSunday)){ const dl=deadlineOf(d,i); if(dl<t&&!isChecked(d,p,i.id)) out.push({key:`${d}_${p}_${i.id}`, person:p, date:dl, origin:d, items:[i.title], late:true}); }
+    for(const i of items.filter(i=>i.dueSunday)){ const dl=deadlineOf(d,i); if(dl<t&&!onTime(d,p,i)) out.push({key:`${d}_${p}_${i.id}`, person:p, date:dl, origin:d, items:[i.title], late:true}); }
   }
   const settled=new Set(state.fines.map(f=>f.forKey).filter(Boolean));
   return out.filter(x=>!settled.has(x.key));
@@ -852,20 +854,20 @@ function actionBtn(i){
 function taskRow(d,i,showDate){
   const ch=chapterOf(d), on=isChecked(d,me,i.id), o=OTHER[me], oon=isChecked(d,o,i.id);
   const editable=canEdit(d,i,me), t=today(), dl=deadlineOf(d,i);
-  const missed=!on && dl<t, future=d>t, late=!on && !missed && d<t && !i.dueSunday;
+  const missed=!on && dl<t, future=d>t, late=!on && !missed && d<t && !i.dueSunday, lateDone=on && !onTime(d,me,i);
   const key=`${d}|${i.id}`;
   const due = i.dueSunday ? `<span class="due">${dl===t?'오늘 자정 마감':`${shortDate(dl)} 자정까지`}</span>` : '';
-  const stateTxt = missed?'<span class="missed">놓쳤어요</span>':late?'<span class="late">밀렸어요, 일요일까지 하면 괜찮아요</span>':(future?'<span>그날 체크할 수 있어요</span>':'');
+  const stateTxt = missed?'<span class="missed">놓쳤어요, 지금이라도 체크할 수 있어요</span>':lateDone?'<span class="late">늦게 완료했어요</span>':late?'<span class="late">밀렸어요, 일요일까지 하면 괜찮아요</span>':(future?'<span>그날 체크할 수 있어요</span>':'');
   const dateTxt = showDate?`<span class="dchip-s">${shortDate(d)}</span>`:'';
   const label = on?'완료 취소':'완료로 체크';
   return `<li class="task ${on?'done':''} ${anim.pop===key?'pop':''}" data-key="${key}">
-    <button class="bloom ${!editable&&!on?(missed?'missed':'locked'):''}" role="checkbox" aria-checked="${on}" aria-label="${esc(i.title)} ${label}" data-act="check" data-date="${d}" data-id="${i.id}" ${editable?'':'disabled'}>
+    <button class="bloom ${!on&&missed?'missed':(!editable&&!on?'locked':'')}" role="checkbox" aria-checked="${on}" aria-label="${esc(i.title)} ${label}" data-act="check" data-date="${d}" data-id="${i.id}" ${editable?'':'disabled'}>
       ${on?`<span class="on">${flower(PCOLOR[me])}</span>`:'<span class="off"></span>'}
     </button>
     <div class="t-body">
       <div class="t-title">${dateTxt}${esc(i.title)}</div>
       <div class="t-sub">${kindIcon(i.kind)}${[itemSub(i,ch),due,stateTxt].filter(Boolean).join('<span class="sep" aria-hidden="true">/</span>')}</div>
-      ${i.kind==='record'&&!on&&!missed&&!future&&!showDate?`<div class="t-hint">${RECORD_HINT}</div>`:''}
+      ${i.kind==='record'&&!on&&!future&&!showDate?`<div class="t-hint">${RECORD_HINT}</div>`:''}
     </div>
     <div class="t-side">${!future?actionBtn(i):''}
       <span class="mate ${oon?'on':''}" data-key="${o}|${key}" style="--mate-soft:${PSOFT[o]}" title="${PEOPLE[o].name} ${oon?'완료':'아직'}" aria-label="${PEOPLE[o].name} ${oon?'완료':'아직'}">
@@ -1165,7 +1167,7 @@ document.addEventListener('click', async ev=>{
   if(a==='goto-day'){ tab='today'; safeLS.set('jaksim3-tab2',tab); viewDate=b.dataset.to===today()?null:b.dataset.to; anim.view='fade'; window.scrollTo({top:0,behavior:'instant'}); render(); return; }
   if(a==='goto-week'){ tab='week'; safeLS.set('jaksim3-tab2',tab); viewWeek=+b.dataset.w; anim.view='fade'; window.scrollTo({top:0,behavior:'instant'}); render(); return; }
   if(a==='check'){
-    const {date,id}=b.dataset, v=!isChecked(date,me,id);
+    const {date,id}=b.dataset, v=isChecked(date,me,id)?false:today();
     state.days[date]??={}; state.days[date][me]??={}; state.days[date][me][id]=v;
     if(v){ anim.pop=`${date}|${id}`; sessionDone.add(`${date}|${id}`); }
     anim.view=null; render(); holdUntil=Date.now()+800;
