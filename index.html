@@ -378,6 +378,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .grow{display:grid;grid-template-columns:minmax(0,1fr) repeat(5,44px);align-items:center;gap:4px;padding:7px 6px;border-radius:14px;width:100%;text-align:left;transition:background .2s}
 .grow:hover{background:var(--linen)}
 .grow.now{background:var(--blush-2)}
+.grow.rest .wlabel .wt{color:var(--faint)}
 .grow.ghead{padding-top:12px;padding-bottom:4px}
 .grow.ghead:hover{background:none}
 .grow.ghead span{font-family:var(--en);font-size:12px;color:var(--faint);text-align:center;text-transform:lowercase}
@@ -462,6 +463,8 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .form{display:grid;gap:14px;margin-top:16px}
 .form label{display:grid;gap:6px;font-size:12.5px;font-weight:600;color:var(--sub)}
 .form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sched-preview{background:var(--blush-2);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.6;color:var(--ink)}
+.modal{max-height:calc(100vh - 40px);overflow:auto}
 
 /* notice + toast */
 .notice{position:fixed;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom));z-index:35;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
@@ -603,6 +606,7 @@ const I = {
   lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>',
   discord:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 5.3A16.5 16.5 0 0 0 15.5 4l-.5 1a15 15 0 0 0-6 0l-.5-1a16.5 16.5 0 0 0-4.1 1.3C1.8 9.2 1.1 13 1.4 16.8a16.6 16.6 0 0 0 5 2.5l1.1-1.7a10.7 10.7 0 0 1-1.7-.8l.4-.3a11.8 11.8 0 0 0 11.6 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.7a16.5 16.5 0 0 0 5-2.5c.4-4.4-.6-8.2-3-11.5zM8.5 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm7 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   pencil:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
@@ -664,10 +668,28 @@ async function makeFirebaseStore(onChange){
    5) 도메인 로직
    ========================================================= */
 const start = () => state.settings.startDate;
-const endDate = () => addDays(start(), WEEKS*7-1);
+const adjustments = () => (state.settings.schedule||[]).slice().sort((a,b)=>a.pause<b.pause?-1:1);
+let _schedKey=null, _schedCache=null;
+function schedTable(){
+  const key=start()+JSON.stringify(state.settings.schedule||[]);
+  if(key===_schedKey) return _schedCache;
+  const adj=adjustments(), rows=[];
+  for(let cw=0; cw<200; cw++){
+    const mon=addDays(start(),cw*7); let n=cw+1, by=null;
+    for(const a of adj){ if(a.pause<=mon){ if(mon<a.resume){ n=0; by=a; } else { n=a.chapter+Math.round(diffDays(mon,a.resume)/7); by=null; } } }
+    rows.push({n,by});
+    if(n>=12) break;
+  }
+  _schedKey=key; _schedCache=rows; return rows;
+}
+const calWeeks = () => schedTable().length;
+const chapNo = cw => (cw>=0&&cw<calWeeks()) ? schedTable()[cw].n : -1;
+const endDate = () => addDays(start(), calWeeks()*7-1);
 const lastWeekday = () => addDays(endDate(),-2);
 const weekOf = d => Math.floor(diffDays(d,start())/7);
-const chapterOf = d => { const w=weekOf(d); return (w>=0&&w<WEEKS)?CHAPTERS[w]:null; };
+const chapterOf = d => { const n=chapNo(weekOf(d)); return (n>=1&&n<=12)?CHAPTERS[n-1]:null; };
+const isPauseWeek = d => chapNo(weekOf(d))===0;
+const pauseInfo = d => { const r=schedTable()[weekOf(d)]; return r&&r.by ? r.by : null; };
 const weekStart = w => addDays(start(), w*7);
 function routineFor(date){
   const rs=[...state.routines].sort((a,b)=>a.from<b.from?-1:1); let cur=rs[0];
@@ -675,7 +697,7 @@ function routineFor(date){
 }
 function itemsFor(date){
   const w=dow(date); if(w<1||w>5) return [];
-  const wk=weekOf(date); if(wk<0||wk>=WEEKS) return [];
+  if(!chapterOf(date)) return [];
   return routineFor(date)[w]||[];
 }
 const isChecked = (d,p,id) => !!state.days[d]?.[p]?.[id];
@@ -707,7 +729,7 @@ function dayStatus(d,p){
 }
 function personStats(p){
   let total=0,done=0; const t=today();
-  for(let w=0;w<WEEKS;w++) for(let k=1;k<=5;k++){ const d=addDays(weekStart(w),k-1); if(d>t) continue; for(const i of itemsFor(d)){ total++; if(isChecked(d,p,i.id)) done++; } }
+  for(let w=0;w<calWeeks();w++) for(let k=1;k<=5;k++){ const d=addDays(weekStart(w),k-1); if(d>t) continue; for(const i of itemsFor(d)){ total++; if(isChecked(d,p,i.id)) done++; } }
   let streak=0; let d=t;
   if(dayStatus(d,p)!=='full') d=addDays(d,-1);
   for(let guard=0; guard<100 && d>=start(); guard++, d=addDays(d,-1)){
@@ -877,7 +899,7 @@ function taskRow(d,i,showDate){
 }
 function weekStrip(d){
   const wkend=dow(d)===0||dow(d)===6, fri=wkend?addDays(d,dow(d)===6?-1:-2):null;
-  const w=Math.min(Math.max(weekOf(wkend?fri:d),0),WEEKS-1), ws=weekStart(w), t=today();
+  const w=Math.min(Math.max(weekOf(wkend?fri:d),0),calWeeks()-1), ws=weekStart(w), t=today();
   const prev=wkend?fri:stepWeekday(d,-1);
   const next=wkend?addDays(fri,3):stepWeekday(d,1);
   const canPrev = prev>=start(), canNext = next<=lastWeekday();
@@ -889,8 +911,18 @@ function weekStrip(d){
     <button class="icon-btn" data-act="day" data-to="${next}" ${canNext?'':'disabled'} aria-label="다음 날">${I.r}</button>
   </div>`;
 }
+function pauseLine(d){
+  const a=pauseInfo(d); if(!a) return '쉬어가는 주예요.';
+  const c=CHAPTERS[a.chapter-1];
+  return `쉬어가는 주예요. ${shortDate(a.resume)}부터 Ch.${c.n} ${esc(c.en)}로 다시 시작해요.`;
+}
 function chapterTicket(d){
-  const ch=chapterOf(d)||CHAPTERS[0], w=Math.max(0,Math.min(WEEKS-1,weekOf(d)));
+  const w=Math.max(0,Math.min(calWeeks()-1,weekOf(d)));
+  if(isPauseWeek(d)) return `<aside class="ticket chapter" aria-label="쉬는 주">${petals(w*17+3,5)}
+    <p class="wk-meta on-pink">week ${w+1}<span>/</span>pause</p>
+    <h2>rest week</h2><p class="ko">${pauseLine(d)}</p>
+    <div class="acts"><button class="btn btn-sm" data-act="open-sched">일정 조정 보기</button></div></aside>`;
+  const ch=chapterOf(d)||CHAPTERS[0];
   return `<aside class="ticket chapter" aria-label="이번 주 챕터">${petals(ch.n*31,5)}
     <p class="wk-meta on-pink">week ${w+1}<span>/</span>chapter ${ch.n}</p>
     <h2>${esc(ch.en)}</h2><p class="ko">${ch.ko}</p>
@@ -913,7 +945,7 @@ function viewToday(){
   if(d<start()) d=start();
   if(d>endDate()) d=lastWeekday();
   const wd=dow(d), weekend=wd===0||wd===6, w=weekOf(d);
-  if(weekOf(t)>=WEEKS && !viewDate){
+  if(weekOf(t)>=calWeeks() && !viewDate){
     const a=personStats('juhyun'), b=personStats('yena');
     return `<div class="today-grid"><div class="t-head"><div class="dtitle"><div class="chips-row"><span class="chip">12 weeks done</span></div><h1>we made it</h1><p>12주 완주! 주현 ${a.pct}%, 예나 ${b.pct}%. 이제 오픽 볼 차례예요.</p></div></div></div>`;
   }
@@ -928,7 +960,7 @@ function viewToday(){
     list = weekendCard(mon);
   } else {
     const items=itemsFor(d);
-    list = items.length?boardCard(d,items,'to-do', isToday?'오늘 할 일':'이날 할 일'):`<section class="ticket board"><div class="blank">이날은 배정된 할 일이 없어요. week 탭에서 루틴을 바꿀 수 있어요.</div></section>`;
+    list = items.length?boardCard(d,items,'to-do', isToday?'오늘 할 일':'이날 할 일'):(isPauseWeek(d)?`<section class="ticket board"><div class="blank">${flower('#EFA9C9','#DE6FA1')}이번 주는 할 일도 벌금도 없어요. 푹 쉬어요.</div></section>`:`<section class="ticket board"><div class="blank">이날은 배정된 할 일이 없어요. week 탭에서 루틴을 바꿀 수 있어요.</div></section>`);
   }
   return `<div class="today-grid stagger">
     <div class="t-head"><div class="dtitle ${daySlide?'xfade':''}"><div class="chips-row"><span class="chip">${tag}</span>${back}</div><h1>${title}</h1><p>${sub}</p></div>${weekStrip(d)}</div>
@@ -970,9 +1002,10 @@ function boardCard(d,items,en,ko){
 
 /* ---------- WEEK ---------- */
 function viewWeekBoard(){
-  const t=today(), nowW=Math.min(Math.max(weekOf(t),0),WEEKS-1);
+  const t=today(), nowW=Math.min(Math.max(weekOf(t),0),calWeeks()-1);
   if(viewWeek===null) viewWeek=nowW;
-  const w=viewWeek, ch=CHAPTERS[w], ws=weekStart(w);
+  if(viewWeek>calWeeks()-1) viewWeek=calWeeks()-1;
+  const w=viewWeek, ws=weekStart(w), paused=isPauseWeek(ws), ch=chapterOf(ws)||CHAPTERS[0];
   const E=editing;
   const cols=[1,2,3,4,5].map(k=>{
     const d=addDays(ws,k-1);
@@ -992,21 +1025,23 @@ function viewWeekBoard(){
     const canDrop = E && E.sel && E.sel.k!=k;
     return `<section class="ticket col ${isT&&!E?'today':''} ${canDrop?'can-drop':''}" data-col="${k}" ${canDrop?`data-act="ed-drop" data-k="${k}"`:(E?'':`data-act="goto-day" data-to="${d}"`)} style="${E?'':'cursor:pointer'}"><span class="hole"></span>
       <div class="col-head" ${E?'':`role="button" tabindex="0" aria-label="${krDateDow(d)} 보기"`}><span><span class="en">${DAYS_EN[k]}</span>${isT&&!E?'<span class="tday">today</span>':''}</span><small>${md(d)}</small></div>
-      <div class="chips">${chips||(E?'':'<div class="col-empty">쉬는 날</div>')}</div>
+      <div class="chips">${chips||(E?'':`<div class="col-empty">${paused?'쉬는 주':'쉬는 날'}</div>`)}</div>
       ${E?`<button class="add-chip" data-act="ed-add" data-k="${k}">+ add</button>`:''}
     </section>`;
   }).join('');
   const head = E ? `<div class="week-head"><div class="mid"><div class="chips-row"><span class="chip">edit routine</span></div><h1>weekly routine</h1><p>할 일을 눌러 고르고, 옮길 요일 칸을 누르거나 끌어다 놓으세요.</p></div></div>`
     : `<div class="week-head">
       <button class="icon-btn" data-act="wk" data-d="-1" ${w<=0?'disabled':''} aria-label="이전 주">${I.l}</button>
-      <div class="mid"><p class="wk-meta">week ${w+1}<span>/</span>chapter ${ch.n}${w===weekOf(t)?'<span>/</span>this week':''}</p><h1>${esc(ch.en)}</h1><p>${ch.ko}, ${md(ws)} ~ ${md(addDays(ws,4))}${ch.gr?`. 문법: ${esc(ch.gr)}`:''}</p></div>
-      <button class="icon-btn" data-act="wk" data-d="1" ${w>=WEEKS-1?'disabled':''} aria-label="다음 주">${I.r}</button>
+      <div class="mid">${paused?`<p class="wk-meta">week ${w+1}<span>/</span>pause${w===weekOf(t)?'<span>/</span>this week':''}</p><h1>rest week</h1><p>${md(ws)} ~ ${md(addDays(ws,4))}. ${pauseLine(ws)}</p>`
+        :`<p class="wk-meta">week ${w+1}<span>/</span>chapter ${ch.n}${w===weekOf(t)?'<span>/</span>this week':''}</p><h1>${esc(ch.en)}</h1><p>${ch.ko}, ${md(ws)} ~ ${md(addDays(ws,4))}${ch.gr?`. 문법: ${esc(ch.gr)}`:''}</p>`}</div>
+      <button class="icon-btn" data-act="wk" data-d="1" ${w>=calWeeks()-1?'disabled':''} aria-label="다음 주">${I.r}</button>
     </div>
     <div class="week-tools">
       <a class="btn btn-soft" href="${esc(state.settings.lectureUrl)}" target="_blank" rel="noopener" aria-label="강의 사이트">${I.play}<span class="en lbl">lectures</span></a>
       <a class="btn btn-discord" href="${esc(state.settings.discordUrl)}" target="_blank" rel="noopener" aria-label="디스코드">${I.discord}<span class="lbl">discord</span></a>
       ${w!==nowW?`<button class="btn btn-line" data-act="wk-now">this week</button>`:''}
-      <button class="btn edit-btn" data-act="edit" title="루틴 편집">${I.pencil}<span class="lbl">루틴 편집</span></button>
+      <button class="btn edit-btn" data-act="open-sched" title="일정 조정">${I.cal}<span class="lbl">일정 조정</span></button>
+      <button class="btn edit-btn" style="margin-left:0" data-act="edit" title="루틴 편집">${I.pencil}<span class="lbl">루틴 편집</span></button>
     </div>`;
   const legend = E?'':`<div class="wb-legend"><span>${flower(PCOLOR.juhyun)}주현 완료</span><span>${flower(PCOLOR.yena)}예나 완료</span><span><i style="width:12px;height:12px;border-radius:50%;border:1.5px dotted var(--stone);display:inline-block"></i>아직</span><span><i style="width:12px;height:12px;border-radius:50%;background:var(--rasp-soft);box-shadow:inset 0 0 0 1.5px #EDA8BB;display:inline-block"></i>놓침</span><span>요일이나 할 일을 누르면 그날로 가요</span></div>`;
   return `${head}<div class="wboard stagger ${E?'editing':''}">${cols}</div>${legend}${E?inspector()+linksCard()+saveBar():''}`;
@@ -1049,10 +1084,10 @@ function viewJourney(){
     <div class="bar"><i style="width:${S[p].pct}%;background:${PCOLOR[p]}"></i></div></div>`;
   const fl=(st,p)=>{ if(st==='full') return `<span class="fl">${flower(PCOLOR[p])}</span>`; if(st==='part') return `<span class="fl">${halfFlower(PCOLOR[p])}</span>`;
     if(st==='miss') return '<span class="fl miss"><i></i></span>'; if(st==='pend') return '<span class="fl pend"><i></i></span>'; return '<span class="fl future"><i></i></span>'; };
-  const rows=CHAPTERS.map((c,w)=>{
-    const ws=weekStart(w);
-    return `<button class="grow ${w===nowW?'now':''}" data-act="goto-week" data-w="${w}" aria-label="${w+1}주차 ${esc(c.en)} 보기">
-      <span class="wlabel"><span class="wn">w${w+1}</span><span class="wt">${esc(c.en)}</span><span class="wk">${c.ko}</span></span>
+  const rows=schedTable().map((r,w)=>{
+    const ws=weekStart(w), c=r.n>=1?CHAPTERS[r.n-1]:null;
+    return `<button class="grow ${w===nowW?'now':''} ${c?'':'rest'}" data-act="goto-week" data-w="${w}" aria-label="${w+1}주차 ${c?esc(c.en):'쉬는 주'} 보기">
+      <span class="wlabel"><span class="wn">w${w+1}</span><span class="wt">${c?esc(c.en):'rest week'}</span><span class="wk">${c?`ch.${c.n} ${c.ko}`:'쉬어가는 주'}</span></span>
       ${[1,2,3,4,5].map(k=>{const d=addDays(ws,k-1);return `<span class="plot ${d===t?'today':''}">${fl(dayStatus(d,'juhyun'),'juhyun')}${fl(dayStatus(d,'yena'),'yena')}</span>`;}).join('')}
     </button>`;}).join('');
   const lead = (S.juhyun.done+S.yena.done) ? `둘이 함께 ${S.juhyun.done+S.yena.done}송이를 피웠어요` : "첫 꽃을 기다리고 있어요";
@@ -1086,6 +1121,11 @@ function jarSVG(level){
     </g>
   </svg>`;
 }
+function debtExists(key){
+  const [d,p]=key.split('_'); if(!d||!p||!PEOPLE[p]) return false;
+  const saved=state.fines; state.fines=[];
+  const ok=debtsFor(p).some(x=>x.key===key); state.fines=saved; return ok;
+}
 function viewJar(){
   const paid=state.fines.filter(f=>f.type!=='waived');
   const total=paid.reduce((s,f)=>s+(+f.amount||0),0), each=Math.floor(total/2);
@@ -1118,11 +1158,40 @@ function viewJar(){
         <span class="face">${flower(PCOLOR[f.person]||'#C9C2B8')}</span>
         <div class="m"><div class="t">${PEOPLE[f.person]?.name||''}${f.type==='waived'?'<span class="tag">면제</span>':''}</div><div class="s">${f.type==='waived'?'면제한 날':'낸 날'} ${f.paidOn?shortDate(f.paidOn):''}${f.memo?`, ${esc(f.memo)}`:''}</div></div>
         <span class="a num ${f.type==='waived'?'void':''}">${won(+f.amount||0)}</span>
-        <button class="btn btn-sm ${confirmDel===f.id?'btn-rasp':'btn-soft'}" data-act="del-fine" data-id="${f.id}">${confirmDel===f.id?'정말 삭제':'삭제'}</button></li>`).join('')}</ul>`
+        <button class="btn btn-sm ${confirmDel===f.id?'btn-rasp':'btn-soft'}" data-act="del-fine" data-id="${f.id}">${confirmDel===f.id?(f.forKey&&debtExists(f.forKey)?'미납으로 되돌리기':'정말 삭제'):(f.forKey&&debtExists(f.forKey)?'되돌리기':'삭제')}</button></li>`).join('')}</ul>
+      ${confirmDel&&state.fines.find(f=>f.id===confirmDel&&f.forKey&&debtExists(f.forKey))?'<p class="note">이 기록은 미납 벌금을 처리한 기록이라, 지우면 그 벌금이 다시 미납으로 돌아가요. 잘못 누른 기록을 바로잡을 때만 쓰세요.</p>':''}`
       :'<div class="blank">아직 기록이 없어요.</div>'}
     </section></div>`;
 }
+let schedForm=null;
+function mondayOf(d){ return addDays(d,-((dow(d)+6)%7)); }
+function viewSched(){
+  const t=today(), thisMon=mondayOf(t<start()?start():t);
+  if(!schedForm){ const cur=chapterOf(thisMon); schedForm={pause:thisMon, resume:addDays(thisMon,7), chapter:cur?cur.n:1}; }
+  const F=schedForm;
+  const pauseOpts=[-2,-1,0,1,2,3,4].map(k=>addDays(thisMon,k*7)).filter(x=>x>=start());
+  const resumeOpts=[0,1,2,3,4,5,6,8].map(k=>addDays(F.pause,k*7));
+  if(!resumeOpts.includes(F.resume)) F.resume=resumeOpts[1];
+  const rest=Math.round(diffDays(F.resume,F.pause)/7), c=CHAPTERS[F.chapter-1];
+  const finish=addDays(F.resume,(12-F.chapter)*7+4);
+  const list=adjustments();
+  return `<div class="scrim" data-act="close-modal"><div class="ticket modal" role="dialog" aria-modal="true" aria-label="일정 조정" data-stop><span class="hole"></span>
+    <div class="sheet-head"><h2><span class="en">adjust schedule</span><small>일정 조정</small></h2><button class="icon-btn" data-act="close-modal" aria-label="닫기" style="transform:rotate(45deg)">${I.plus}</button></div>
+    <p class="note" style="margin-top:12px">둘 다 바쁜 주가 생기면 그 주는 쉬고, 원하는 월요일부터 원하는 챕터로 다시 시작해요. 월~금 공부, 토·일 휴식은 그대로예요. 쉬는 주에는 할 일과 벌금이 없어요.</p>
+    <div class="form">
+      <label>쉬기 시작할 주<select class="field" data-sf="pause">${pauseOpts.map(x=>`<option value="${x}" ${x===F.pause?'selected':''}>${shortDate(x)} 주부터${x===thisMon?' (이번 주)':''}</option>`).join('')}</select></label>
+      <div class="two">
+        <label>다시 시작할 날<select class="field" data-sf="resume">${resumeOpts.map(x=>`<option value="${x}" ${x===F.resume?'selected':''}>${shortDate(x)}${x===F.pause?' (쉬지 않음)':''}</option>`).join('')}</select></label>
+        <label>시작할 챕터<select class="field" data-sf="chapter">${CHAPTERS.map(ch=>`<option value="${ch.n}" ${ch.n===F.chapter?'selected':''}>Ch.${ch.n} ${esc(ch.en)}</option>`).join('')}</select></label>
+      </div>
+      <div class="sched-preview">${rest?`${shortDate(F.pause)} 주부터 ${rest}주 쉬고, `:''}<b>${shortDate(F.resume)}</b>부터 <b>Ch.${c.n} ${esc(c.en)}</b>로 시작해요. 마지막 공부일은 <b>${shortDate(finish)}</b>이에요.</div>
+      <button class="btn btn-me" type="button" data-act="sched-save" style="height:46px">이렇게 조정하기</button>
+    </div>
+    ${list.length?`<div style="margin-top:18px;border-top:2px dotted var(--line);padding-top:12px"><div class="note" style="margin-top:0">지금까지 조정한 일정</div><ul class="rows">${list.map(a=>`<li><div class="m"><div class="t">${a.pause<a.resume?`${shortDate(a.pause)} 주부터 쉬고 `:''}${shortDate(a.resume)}부터 Ch.${a.chapter}</div></div><button class="btn btn-sm btn-soft" data-act="sched-del" data-id="${a.id}">되돌리기</button></li>`).join('')}</ul></div>`:''}
+  </div></div>`;
+}
 function viewModal(){
+  if(modal==='sched') return viewSched();
   return `<div class="scrim" data-act="close-modal"><div class="ticket modal" role="dialog" aria-modal="true" aria-label="벌금 직접 기록" data-stop><span class="hole"></span>
     <div class="sheet-head"><h2><span class="en">add a record</span><small>벌금 직접 기록</small></h2><button class="icon-btn" data-act="close-modal" aria-label="닫기" style="transform:rotate(45deg)">${I.plus}</button></div>
     <div class="form" data-form="fine">
@@ -1137,7 +1206,7 @@ function noticeBar(){
   const debts=debtsFor(me);
   if(!debts.length){
     const t=today(), late=[];
-    if(weekOf(t)>=0&&weekOf(t)<WEEKS){ const mon=addDays(t,-((dow(t)+6)%7)); for(let k=0;k<5;k++){ const x=addDays(mon,k); if(x>=t) break; for(const i of itemsFor(x)) if(!isChecked(x,me,i.id)) late.push({x,i}); } }
+    if(weekOf(t)>=0&&weekOf(t)<calWeeks()){ const mon=addDays(t,-((dow(t)+6)%7)); for(let k=0;k<5;k++){ const x=addDays(mon,k); if(x>=t) break; for(const i of itemsFor(x)) if(!isChecked(x,me,i.id)) late.push({x,i}); } }
     if(!late.length) return '';
     return `<div class="notice" role="status"><div class="notice-wrap"><div class="ticket notice-in"><span class="ico">${flower('#EFA9C9','#FFFCF7')}</span>
     <p><span class="chip on-dark">catch up</span> 밀린 할 일이 ${late.length}개 있어요. 일요일 자정까지 하면 벌금 없어요.</p>
@@ -1176,8 +1245,9 @@ document.addEventListener('click', async ev=>{
     if(v&&items.every(i=>isChecked(date,me,i.id))) setTimeout(()=>toast(items.every(i=>isChecked(date,OTHER[me],i.id))?'둘 다 끝! 오늘도 피었어요':'오늘 할 일 끝! 수고했어요'),350);
     return;
   }
-  if(a==='wk'){ viewWeek=Math.min(WEEKS-1,Math.max(0,viewWeek+(+b.dataset.d))); anim.view=+b.dataset.d>0?'next':'prev'; render(); return; }
+  if(a==='wk'){ viewWeek=Math.min(calWeeks()-1,Math.max(0,viewWeek+(+b.dataset.d))); anim.view=+b.dataset.d>0?'next':'prev'; render(); return; }
   if(a==='wk-now'){ viewWeek=null; anim.view='fade'; render(); return; }
+  if((a==='pay'||a==='waive') && state.fines.some(f=>f.forKey===b.dataset.key)) return;
   if(a==='pay'||a==='waive'){
     const before=state.fines.filter(f=>f.type!=='waived').reduce((s,f)=>s+(+f.amount||0),0);
     if(a==='pay') anim.jar={from:before, fromLevel:before?Math.max(.1,Math.min(1,before/(OPIC_FEE*2))):0, person:b.dataset.p};
@@ -1185,10 +1255,25 @@ document.addEventListener('click', async ev=>{
     await store.addFine({person:b.dataset.p, amount:FINE, paidOn:today(), forKey:b.dataset.key, type:a==='pay'?'paid':'waived', memo:a==='waive'?'합의 면제':''});
     toast(a==='pay'?'저금통에 1만 원이 들어갔어요':'면제로 처리했어요', PCOLOR[b.dataset.p]); return;
   }
+  if(a==='open-sched'){ modal='sched'; schedForm=null; anim.view='still'; render(); return; }
+  if(a==='sched-save'){
+    const F=schedForm; if(!F) return;
+    const kept=(state.settings.schedule||[]).filter(x=>x.pause<F.pause);
+    kept.push({id:uid(), pause:F.pause, resume:F.resume, chapter:F.chapter});
+    modal=null; anim.view='fade'; viewWeek=null;
+    await store.saveMeta({...state.settings, schedule:kept}, state.routines);
+    toast(`${shortDate(F.resume)}부터 Ch.${F.chapter}로 다시 시작해요`); return;
+  }
+  if(a==='sched-del'){
+    const kept=(state.settings.schedule||[]).filter(x=>x.id!==b.dataset.id);
+    anim.view='still'; await store.saveMeta({...state.settings, schedule:kept}, state.routines); toast('조정을 되돌렸어요'); return;
+  }
   if(a==='open-fine'){ modal='fine'; anim.view='still'; render(); setTimeout(()=>document.querySelector('.modal input[name=amount]')?.focus(),50); return; }
   if(a==='fine-save'){ saveFine(); return; }
   if(a==='seg'){ const f=b.closest('[data-form]'); f.querySelector('[name=person]').value=b.dataset.p; f.querySelectorAll('[data-act=seg]').forEach(x=>x.setAttribute('aria-pressed',x===b)); return; }
-  if(a==='del-fine'){ anim.view='still'; if(confirmDel!==b.dataset.id){ confirmDel=b.dataset.id; render(); return; } confirmDel=null; await store.deleteFine(b.dataset.id); toast('기록을 삭제했어요'); return; }
+  if(a==='del-fine'){ anim.view='still'; if(confirmDel!==b.dataset.id){ confirmDel=b.dataset.id; render(); return; }
+    const f=state.fines.find(x=>x.id===b.dataset.id), back=f&&f.forKey&&debtExists(f.forKey);
+    confirmDel=null; await store.deleteFine(b.dataset.id); toast(back?'기록을 지우고 미납으로 되돌렸어요':'기록을 삭제했어요'); return; }
   if(a==='sim-reset'){ simToday=null; viewDate=null; viewWeek=null; anim.view='fade'; render(); return; }
   if(a==='demo-reset'){ anim.view='still'; store.reset(); toast('미리보기 기록을 지웠어요'); return; }
   // ---- 루틴 편집 ----
@@ -1244,6 +1329,9 @@ document.addEventListener('input', ev=>{
 document.addEventListener('change', ev=>{
   const el=ev.target;
   if(el.dataset.act==='sim'&&el.value){ simToday=el.value; viewDate=null; viewWeek=null; anim.view='fade'; render(); return; }
+  if(el.dataset.sf&&schedForm){ const k=el.dataset.sf; schedForm[k]= k==='chapter' ? +el.value : el.value;
+    if(k==='pause'){ const c=chapterOf(el.value); if(c) schedForm.chapter=c.n; schedForm.resume=addDays(el.value, Math.max(7, diffDays(schedForm.resume, el.value)>0?Math.round(diffDays(schedForm.resume,el.value)/7)*7:7)); }
+    anim.view='still'; render(); return; }
   if(editing&&el.dataset.ed==='part'&&editing.sel){ const {k,i}=editing.sel; editing.routine[k][i].part=el.value; }
 });
 async function saveFine(){
